@@ -1,0 +1,12 @@
+{
+  "error": {
+    "validation_error": "Validation error",
+    "database_error": "A database error occurred",
+    "internal_server_error": "Internal server error"
+  },
+  "item": {
+    "not_found": "Item with ID %{item_id} not found",
+    "name_empty": "Item name cannot be empty",
+    "name_already_exists": "An item named '%{name}' already exists"
+  }
+}
