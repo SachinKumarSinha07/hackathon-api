@@ -156,7 +156,32 @@ class VAPTImportService:
         logger.debug(f"Calculated target_date: {target_date} (report_date={report_date} + {sla_days} days)")
         return target_date
 
-    
+    def _parse_poc_link(self, poc_link) -> List[str]:
+        """
+        Normalize a stored poc_link value into a list of URLs.
+
+        Handles new JSON-encoded lists as well as legacy formats
+        (a raw URL string or a comma-separated string).
+        """
+        if not poc_link:
+            return []
+        if isinstance(poc_link, list):
+            return poc_link
+        if isinstance(poc_link, str):
+            value = poc_link.strip()
+            if not value:
+                return []
+            # Try JSON first (new format)
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    return [str(item) for item in parsed]
+                return [str(parsed)]
+            except (json.JSONDecodeError, ValueError):
+                # Legacy format: comma-separated or single URL
+                return [part.strip() for part in value.split(",") if part.strip()]
+        return []
+
     def _to_vulnerability_summary(self, v: VulnerabilityMaster) -> VulnerabilitySummary:
         """Map a VulnerabilityMaster ORM object to a VulnerabilitySummary schema."""
         return VulnerabilitySummary(
@@ -167,7 +192,7 @@ class VAPTImportService:
             description=v.description,
             impact=v.impact,
             mitigation=v.mitigation,
-            poc_link=json.loads(v.poc_link) if v.poc_link else [],
+            poc_link=self._parse_poc_link(v.poc_link),
             remarks=v.remarks,
             pic=v.pic,
             status=v.status,
@@ -422,29 +447,9 @@ class VAPTImportService:
 
             logger.info(f"Successfully imported {len(created_vulns)} vulnerabilities")
 
-            # Build response using Pydantic models
+            # Build response using Pydantic models (same mapping as retrieve)
             vulnerabilities = [
-                VulnerabilitySummary(
-                    vulnerability_id=v.vulnerability_id,
-                    vulnerability_name=v.vulnerability_name,
-                    severity=v.severity,
-                    endpoint_url_list=v.endpoint_url_list,
-                    description=v.description,
-                    impact=v.impact,
-                    mitigation=v.mitigation,
-                    poc_link=json.loads(v.poc_link) if v.poc_link else [],
-                    remarks=v.remarks,
-                    pic=v.pic,
-                    status=v.status,
-                    risk_status=v.risk_status,
-                    report_date=v.report_date,
-                    target_date=v.target_date,
-                    project_id=v.project_id,
-                    round_id=v.round_id,
-                    created_by=v.created_by,
-                    created_at=v.created_at,
-                )
-                for v in created_vulns
+                self._to_vulnerability_summary(v) for v in created_vulns
             ]
 
             return VAPTImportResponse(
