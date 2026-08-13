@@ -149,7 +149,8 @@ class ProjectRepository:
     ) -> List[Dict[str, Any]]:
         """
         Get projects with vulnerability statistics for open issues only.
-        Open issues are those where verification != 'VERIFIED'
+        Open issues are those whose status is not RESOLVED or RISK_ACCEPTED
+        (a NULL status is treated as open).
         
         Args:
             project_id: Optional filter by specific project
@@ -182,7 +183,7 @@ class ProjectRepository:
                 func.count(VulnerabilityMaster.vulnerability_id).label('total')
             ).filter(
                 VulnerabilityMaster.project_id == project.project_id,
-                VulnerabilityMaster.verification != 'VERIFIED'
+                func.coalesce(VulnerabilityMaster.status, 'OPEN').notin_(['RESOLVED', 'RISK_ACCEPTED'])
             )
             
             # Apply round filter if provided
