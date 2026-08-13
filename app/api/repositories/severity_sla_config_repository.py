@@ -89,3 +89,20 @@ class SeveritySLAConfigRepository:
                 return sev
         
         return None
+
+    def get_sla_days_for_severity(self, severity: str) -> Optional[int]:
+        """
+        Get SLA days for a given severity.
+        Returns the first matching SLA config's sla_days (assumes consistent SLA across exposures).
+
+        Args:
+            severity: Severity level (e.g., "Critical - Level 5")
+
+        Returns:
+            Optional[int]: SLA days or None if not found
+        """
+        config = self.db.query(SeveritySLAConfig).filter(
+            SeveritySLAConfig.severity == severity
+        ).first()
+        
+        return config.sla_days if config else None

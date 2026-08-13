@@ -16,7 +16,7 @@ class VulnerabilitySummary(BaseModel):
     mitigation: Optional[str] = None
     poc_link: List[str] = Field(default_factory=list, description="List of presigned POC image URLs")
     remarks: Optional[str] = None
-    security_analyst: Optional[str] = None
+    pic: Optional[str] = None
     status: Optional[str] = None
     risk_status: str = "false"
     report_date: Optional[date] = None
@@ -29,19 +29,6 @@ class VulnerabilitySummary(BaseModel):
     class Config:
         from_attributes = True
 
-
-class VAPTImportSummary(BaseModel):
-    """Summary information about the import operation"""
-    excel_file: str
-    excel_s3_url: str
-    report_folder: str
-    vulnerabilities_imported: int
-    poc_images_uploaded: int
-    project_id: int
-    round_id: int
-    validation_status: Optional[str] = None
-    application_name: Optional[str] = None
-    total_findings: Optional[int] = None
 
 
 class VAPTImportResponse(BaseModel):

@@ -16,6 +16,7 @@ from app.api.repositories.vulnerability_repository import VulnerabilityRepositor
 from app.api.repositories.project_repository import ProjectRepository
 from app.api.repositories.round_repository import RoundRepository
 from app.api.repositories.severity_sla_config_repository import SeveritySLAConfigRepository
+from app.api.models.vulnerability_master import VulnerabilityMaster
 from app.api.middleware.error_handler import APIException
 from app.api.schemas.vapt_import_schema import (
     VAPTImportResponse,
@@ -130,6 +131,93 @@ class VAPTImportService:
                 f"Valid severities: {self.valid_severities}. Setting to None."
             )
             return None
+
+    def _calculate_target_date(self, severity: Optional[str], report_date: Optional[date]) -> Optional[date]:
+        """
+        Calculate target date by adding SLA days to report date.
+
+        Args:
+            severity: Severity level (e.g., "Critical - Level 5")
+            report_date: The report date to add SLA days to
+
+        Returns:
+            Optional[date]: Calculated target date or None
+        """
+        if not severity or not report_date:
+            return None
+
+        sla_days = self.severity_sla_repo.get_sla_days_for_severity(severity)
+        if sla_days is None:
+            logger.warning(f"No SLA days found for severity '{severity}', cannot calculate target_date")
+            return None
+
+        from datetime import timedelta
+        target_date = report_date + timedelta(days=sla_days)
+        logger.debug(f"Calculated target_date: {target_date} (report_date={report_date} + {sla_days} days)")
+        return target_date
+
+    
+    def _to_vulnerability_summary(self, v: VulnerabilityMaster) -> VulnerabilitySummary:
+        """Map a VulnerabilityMaster ORM object to a VulnerabilitySummary schema."""
+        return VulnerabilitySummary(
+            vulnerability_id=v.vulnerability_id,
+            vulnerability_name=v.vulnerability_name,
+            severity=v.severity,
+            endpoint_url_list=v.endpoint_url_list,
+            description=v.description,
+            impact=v.impact,
+            mitigation=v.mitigation,
+            poc_link=json.loads(v.poc_link) if v.poc_link else [],
+            remarks=v.remarks,
+            pic=v.pic,
+            status=v.status,
+            risk_status=v.risk_status,
+            report_date=v.report_date,
+            target_date=v.target_date,
+            project_id=v.project_id,
+            round_id=v.round_id,
+            created_by=v.created_by,
+            created_at=v.created_at,
+        )
+
+    def get_vulnerabilities(
+        self,
+        project_id: Optional[int] = None,
+        round_id: Optional[int] = None,
+        severity: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> VAPTImportResponse:
+        """
+        Retrieve vulnerabilities filtered by project, round, severity and status.
+        Returns the same response shape as the VAPT import endpoint.
+
+        Args:
+            project_id: Optional project ID filter
+            round_id: Optional round ID filter
+            severity: Optional severity filter
+            status: Optional status filter
+
+        Returns:
+            VAPTImportResponse: Matching vulnerabilities
+        """
+        vulns = self.vuln_repo.get_vulnerabilities_filtered(
+            project_id=project_id,
+            round_id=round_id,
+            severity=severity,
+            status=status,
+        )
+
+        logger.info(
+            f"Retrieved {len(vulns)} vulnerabilities "
+            f"(project_id={project_id}, round_id={round_id}, "
+            f"severity={severity}, status={status})"
+        )
+
+        return VAPTImportResponse(
+            success=True,
+            message=f"Retrieved {len(vulns)} vulnerabilities",
+            vulnerabilities=[self._to_vulnerability_summary(v) for v in vulns],
+        )
 
     async def import_vapt_excel(
         self,
@@ -271,6 +359,7 @@ class VAPTImportService:
 
             # Step 4: Prepare vulnerability data for database insertion
             vulnerabilities_to_create = []
+            
             for finding in findings:
                 # Collect S3 URLs for this finding's POC images
                 poc_links = [
@@ -290,22 +379,36 @@ class VAPTImportService:
                 )
 
                 severity_normalized = (finding.get("severity") or {}).get("normalized")
+                mapped_severity = self._map_severity(severity_normalized)
+                report_date = self._parse_date(report_meta.get("report_date"))
+
+                # Calculate target_date: use parsed value if present, otherwise calculate from SLA
+                parsed_target_date = self._parse_date(finding.get("target_resolution_date"))
+                if parsed_target_date is None:
+                    target_date = self._calculate_target_date(mapped_severity, report_date)
+                else:
+                    target_date = parsed_target_date
+
+                # Determine pic: try finding PIC, then report metadata, then project default (role_id 6)
+                pic = finding.get("responsible_pic")
+                if not pic:
+                    pic = self.project_repo.get_user_by_project_and_role(project_id, role_id=6) or ""
 
                 # Map finding fields to database fields
                 vuln_data = {
                     "vulnerability_name": finding.get("title") or "Unknown",
-                    "severity": self._map_severity(severity_normalized),
+                    "severity": mapped_severity,
                     "endpoint_url_list": endpoint_value,
                     "description": finding.get("description"),
                     "impact": finding.get("impact"),
                     "mitigation": finding.get("mitigation"),
                     "poc_link": poc_link_str,
                     "remarks": finding.get("remarks"),
-                    "security_analyst": report_meta.get("security_analyst"),
+                    "pic": pic,
                     "status": finding.get("status") or "OPEN",
                     "risk_status": "false",
-                    "report_date": self._parse_date(report_meta.get("report_date")),
-                    "target_date": self._parse_date(finding.get("target_resolution_date")),
+                    "report_date": report_date,
+                    "target_date": target_date,
                     "project_id": project_id,
                     "round_id": round_id,
                     "created_by": created_by,
@@ -331,7 +434,7 @@ class VAPTImportService:
                     mitigation=v.mitigation,
                     poc_link=json.loads(v.poc_link) if v.poc_link else [],
                     remarks=v.remarks,
-                    security_analyst=v.security_analyst,
+                    pic=v.pic,
                     status=v.status,
                     risk_status=v.risk_status,
                     report_date=v.report_date,
