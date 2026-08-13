@@ -15,7 +15,7 @@ class Project(Base):
     project_name = Column(String(150), nullable=False)
     project_description = Column(Text, nullable=True)
     project_type = Column(String(20), nullable=False)
-    environment = Column(String(20), nullable=False)
+    environment = Column(String(20), nullable=True)
     project_url = Column(String(500), nullable=True)
 
     created_at = Column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)

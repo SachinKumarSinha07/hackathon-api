@@ -24,7 +24,7 @@ class ProjectCreateRequest(BaseModel):
     project_name: str = Field(..., min_length=1, max_length=150, description="Project name")
     project_description: Optional[str] = Field(None, description="Project description")
     project_type: str = Field(..., min_length=1, max_length=20, description="Project type (e.g., web, mobile, api)")
-    environment: str = Field(..., min_length=1, max_length=20, description="Environment (e.g., dev, staging, production)")
+    environment: Optional[str] = Field(None, min_length=1, max_length=20, description="Environment (e.g., dev, staging, production)")
     project_url: Optional[str] = Field(None, max_length=500, description="Project URL")
     members: List[ProjectMemberInput] = Field(..., min_length=1, description="Project members with roles")
 
@@ -35,24 +35,6 @@ class ProjectCreateRequest(BaseModel):
         if not v or not v.strip():
             raise ValueError("Project name cannot be empty")
         return v.strip()
-
-    @field_validator('project_type')
-    @classmethod
-    def validate_project_type(cls, v: str) -> str:
-        """Validate project type"""
-        allowed_types = ['web', 'mobile', 'api', 'desktop', 'embedded', 'other']
-        if v.lower() not in allowed_types:
-            raise ValueError(f"Project type must be one of: {', '.join(allowed_types)}")
-        return v.lower()
-
-    @field_validator('environment')
-    @classmethod
-    def validate_environment(cls, v: str) -> str:
-        """Validate environment"""
-        allowed_envs = ['dev', 'development', 'staging', 'uat', 'production', 'prod']
-        if v.lower() not in allowed_envs:
-            raise ValueError(f"Environment must be one of: {', '.join(allowed_envs)}")
-        return v.lower()
 
     @field_validator('members')
     @classmethod
@@ -217,7 +199,7 @@ class ProjectWithStatsResponse(BaseModel):
     project_name: str
     project_description: Optional[str]
     project_type: str
-    environment: str
+    environment: Optional[str]
     project_url: Optional[str]
     vulnerability_stats: VulnerabilityStats
 
