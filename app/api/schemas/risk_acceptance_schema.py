@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import date
 
 
 class RiskAcceptanceRequest(BaseModel):
@@ -26,7 +26,7 @@ class RiskAcceptanceResponse(BaseModel):
     vulnerability_id: int
     vulnerability_name: str
     is_risk_registered: bool
-    acceptance_request_date: Optional[datetime] = None
+    acceptance_request_date: Optional[date] = None
     comments_remarks: Optional[str] = None
 
     class Config:
@@ -36,7 +36,7 @@ class RiskAcceptanceResponse(BaseModel):
                 "vulnerability_id": 1,
                 "vulnerability_name": "SQL Injection in Login Form",
                 "is_risk_registered": True,
-                "acceptance_request_date": "2026-08-13T10:30:00",
+                "acceptance_request_date": "2026-08-13",
                 "comments_remarks": "Risk accepted as the affected component is behind a firewall."
             }
         }

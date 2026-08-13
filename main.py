@@ -19,7 +19,6 @@ from app.api.middleware import (
     LoggingMiddleware,
     CORSLoggingMiddleware,
     TransactionMiddleware,
-    LocaleMiddleware,
     APIException,
     http_exception_handler,
     validation_exception_handler,
@@ -69,7 +68,7 @@ app = FastAPI(
     * Centralized error handling
     * Request/response logging
     * Per-request DB transactions
-    * i18n (en/ja) support
+
     * OpenAPI/Swagger docs
     """,
     lifespan=lifespan,
@@ -89,7 +88,6 @@ app.add_middleware(
 )
 
 # Custom middleware (added last executes first)
-app.add_middleware(LocaleMiddleware)
 app.add_middleware(TransactionMiddleware)
 app.add_middleware(CORSLoggingMiddleware)
 app.add_middleware(LoggingMiddleware)

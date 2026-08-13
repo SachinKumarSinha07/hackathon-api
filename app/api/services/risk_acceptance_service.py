@@ -28,8 +28,8 @@ class RiskAcceptanceService:
         Add risk acceptance request for a vulnerability.
 
         Updates the vulnerability:
-        - is_risk_registered = True
-        - acceptance_request_date = current timestamp
+        - risk_status = "true"
+        - acceptance_request_date = current date
         - comments_remarks = justification
 
         Args:
@@ -62,8 +62,8 @@ class RiskAcceptanceService:
 
         # Prepare update data
         update_data = {
-            "is_risk_registered": True,
-            "acceptance_request_date": datetime.utcnow(),
+            "risk_status": "true",
+            "acceptance_request_date": datetime.utcnow().date(),
             "comments_remarks": justification,
             "updated_by": requested_by,
             "updated_at": datetime.utcnow(),

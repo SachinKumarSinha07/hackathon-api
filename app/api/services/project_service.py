@@ -14,7 +14,6 @@ from app.api.schemas.project_schema import (
     VulnerabilityStats
 )
 from app.core.logger import get_logger
-from app.core.i18n import translate
 
 logger = get_logger(__name__)
 

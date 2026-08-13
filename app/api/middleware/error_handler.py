@@ -11,7 +11,6 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional
 from app.core.logger import get_logger
-from app.core.i18n import translate
 
 logger = get_logger(__name__)
 
@@ -76,7 +75,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "success": False,
             "error": {
                 "code": status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "message": translate("error.validation_error"),
+                "message": "Validation error",
                 "details": serializable_errors,
                 "path": str(request.url.path),
             },
@@ -93,7 +92,7 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -
             "success": False,
             "error": {
                 "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "message": translate("error.database_error"),
+                "message": "A database error occurred",
                 "path": str(request.url.path),
             },
         },
@@ -126,7 +125,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
             "success": False,
             "error": {
                 "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "message": translate("error.internal_server_error"),
+                "message": "Internal server error",
                 "path": str(request.url.path),
             },
         },
