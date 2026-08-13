@@ -17,6 +17,10 @@ from app.api.repositories.project_repository import ProjectRepository
 from app.api.repositories.round_repository import RoundRepository
 from app.api.repositories.severity_sla_config_repository import SeveritySLAConfigRepository
 from app.api.middleware.error_handler import APIException
+from app.api.schemas.vapt_import_schema import (
+    VAPTImportResponse,
+    VulnerabilitySummary
+)
 
 # Deterministic VAPT parser (vapt_parser.py). It extracts findings + report
 # metadata, cross-validates every number against an independent source in the
@@ -89,9 +93,12 @@ class VAPTImportService:
             return date_value.date()
         if isinstance(date_value, str):
             # Try common date formats
-            for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d"]:
+            for fmt in [
+                "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d",
+                "%d-%m-%Y", "%m-%d-%Y", "%d-%m-%y",
+            ]:
                 try:
-                    return datetime.strptime(date_value, fmt).date()
+                    return datetime.strptime(date_value.strip(), fmt).date()
                 except ValueError:
                     continue
         return None
@@ -131,7 +138,7 @@ class VAPTImportService:
         project_id: int,
         created_by: int,
         round_id: int,
-    ) -> Dict:
+    ) -> VAPTImportResponse:
         """
         Import VAPT Excel file, extract data, upload to S3, and save to database.
 
@@ -143,7 +150,7 @@ class VAPTImportService:
             round_id: Round ID (required)
 
         Returns:
-            Dict: Summary of import results
+            VAPTImportResponse: Import response with summary and vulnerability details
         """
         temp_dir = None
         try:
@@ -173,8 +180,12 @@ class VAPTImportService:
                     message_key="vapt.import.round_project_mismatch"
                 )
             
-            # Create temporary directory for processing
-            temp_dir = Path(tempfile.mkdtemp())
+            # Create temporary directory for processing.
+            # Kept inside the application working directory (EC2-safe & writable)
+            # and always removed in the `finally` block below.
+            local_tmp_base = Path.cwd() / "tmp_vapt"
+            local_tmp_base.mkdir(parents=True, exist_ok=True)
+            temp_dir = Path(tempfile.mkdtemp(prefix="import_", dir=str(local_tmp_base)))
             excel_path = temp_dir / filename
             
             # Save uploaded file temporarily
@@ -230,7 +241,9 @@ class VAPTImportService:
                 f"(validation={validation.get('status')})"
             )
 
-            # Step 3: Upload POC images to S3 and map each file -> S3 URL
+            # Step 3: Upload POC images to S3 and map each file -> viewable URL.
+            # We store a presigned GET URL (view/download) in poc_link so the
+            # image can be opened directly without the bucket being public.
             image_url_mapping = {}
             for finding in findings:
                 for image in finding.get("poc", {}).get("images", []):
@@ -245,7 +258,11 @@ class VAPTImportService:
                         s3_url = self.s3_client.upload_local_file(
                             local_path, s3_key, "image/png"
                         )
-                        image_url_mapping[image_file] = s3_url
+                        # Presigned view/download URL (falls back to raw URL)
+                        view_url = self.s3_client.generate_presigned_url(
+                            s3_key, expiration=settings.s3_presigned_url_expiry
+                        ) or s3_url
+                        image_url_mapping[image_file] = view_url
                         logger.debug(f"Uploaded POC image: {image_file}")
                     else:
                         logger.warning(
@@ -261,7 +278,8 @@ class VAPTImportService:
                     for img in finding.get("poc", {}).get("images", [])
                     if img["file"] in image_url_mapping
                 ]
-                poc_link_str = ", ".join(poc_links) if poc_links else None
+                # Store as JSON string in database
+                poc_link_str = json.dumps(poc_links) if poc_links else None
 
                 # Affected assets: prefer parsed URLs + notes, fall back to raw
                 affected_assets = finding.get("affected_assets") or []
@@ -283,7 +301,10 @@ class VAPTImportService:
                     "mitigation": finding.get("mitigation"),
                     "poc_link": poc_link_str,
                     "remarks": finding.get("remarks"),
-                    "pic": finding.get("responsible_pic"),
+                    "security_analyst": report_meta.get("security_analyst"),
+                    "status": finding.get("status") or "OPEN",
+                    "risk_status": "false",
+                    "report_date": self._parse_date(report_meta.get("report_date")),
                     "target_date": self._parse_date(finding.get("target_resolution_date")),
                     "project_id": project_id,
                     "round_id": round_id,
@@ -298,46 +319,52 @@ class VAPTImportService:
 
             logger.info(f"Successfully imported {len(created_vulns)} vulnerabilities")
 
-            # Step 6: Clean up temporary files
-            if temp_dir and temp_dir.exists():
-                shutil.rmtree(temp_dir)
+            # Build response using Pydantic models
+            vulnerabilities = [
+                VulnerabilitySummary(
+                    vulnerability_id=v.vulnerability_id,
+                    vulnerability_name=v.vulnerability_name,
+                    severity=v.severity,
+                    endpoint_url_list=v.endpoint_url_list,
+                    description=v.description,
+                    impact=v.impact,
+                    mitigation=v.mitigation,
+                    poc_link=json.loads(v.poc_link) if v.poc_link else [],
+                    remarks=v.remarks,
+                    security_analyst=v.security_analyst,
+                    status=v.status,
+                    risk_status=v.risk_status,
+                    report_date=v.report_date,
+                    target_date=v.target_date,
+                    project_id=v.project_id,
+                    round_id=v.round_id,
+                    created_by=v.created_by,
+                    created_at=v.created_at,
+                )
+                for v in created_vulns
+            ]
 
-            return {
-                "success": True,
-                "message": "VAPT Excel imported successfully",
-                "summary": {
-                    "excel_file": filename,
-                    "excel_s3_url": excel_s3_url,
-                    "report_folder": report_folder,
-                    "vulnerabilities_imported": len(created_vulns),
-                    "poc_images_uploaded": n_images,
-                    "project_id": project_id,
-                    "round_id": round_id,
-                    "validation_status": validation.get("status"),
-                    "application_name": report_meta.get("application_name"),
-                    "total_findings": dashboard.get("total_findings", len(findings)),
-                },
-                "vulnerabilities": [
-                    {
-                        "vulnerability_id": v.vulnerability_id,
-                        "vulnerability_name": v.vulnerability_name,
-                        "severity": v.severity,
-                    }
-                    for v in created_vulns
-                ],
-            }
+            return VAPTImportResponse(
+                success=True,
+                message="VAPT Excel imported successfully",
+                vulnerabilities=vulnerabilities,
+            )
 
+        except APIException:
+            # Known/handled errors (validation, not-found, mismatch) must keep
+            # their original status code and message.
+            self.db.rollback()
+            raise
         except Exception as e:
-            # Rollback database changes on error
+            # Rollback database changes on unexpected error
             self.db.rollback()
             logger.error(f"VAPT import failed: {str(e)}", exc_info=True)
-            
-            # Clean up temporary files
-            if temp_dir and temp_dir.exists():
-                shutil.rmtree(temp_dir)
-            
             raise APIException(
                 status_code=500,
                 message=f"Failed to import VAPT Excel: {str(e)}",
                 message_key="vapt.import.failed"
             )
+        finally:
+            # Always remove the local temp directory (EC2-safe cleanup)
+            if temp_dir and temp_dir.exists():
+                shutil.rmtree(temp_dir, ignore_errors=True)

@@ -27,7 +27,7 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
     description="""
     Get a list of projects with vulnerability statistics for open issues.
     
-    **Open issues** are vulnerabilities where verification status is NOT 'VERIFIED'.
+    **Open issues** are vulnerabilities whose status is NOT 'RESOLVED' or 'RISK_ACCEPTED'.
     
     **Filters:**
     - `project_id`: Optional - Filter by specific project ID
