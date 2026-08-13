@@ -14,10 +14,12 @@ class RoundMaster(Base):
     round_id = Column(Integer, primary_key=True, autoincrement=True)
     round_no = Column(Integer, nullable=False)
     round_name = Column(String, nullable=False)
+    version = Column(String, nullable=True)
     project_id = Column(Integer, ForeignKey("projects.project_id"), nullable=False)
     application_url = Column(String, nullable=True)
     environment = Column(String, nullable=True)
     is_mail_sent = Column(Boolean, nullable=False, default=False)
+    email_template_id = Column(Integer, ForeignKey("email_templates.template_id"), nullable=False)
 
     created_by = Column(Integer, ForeignKey("user_master.user_id"), nullable=False)
     created_at = Column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
@@ -26,6 +28,7 @@ class RoundMaster(Base):
 
     # Relationships
     project = relationship("Project", backref="rounds")
+    email_template = relationship("EmailTemplate", backref="rounds")
     creator = relationship("UserMaster", foreign_keys=[created_by], backref="created_rounds")
     updater = relationship("UserMaster", foreign_keys=[updated_by], backref="updated_rounds")
 
