@@ -39,6 +39,7 @@ router = APIRouter(prefix="/rounds", tags=["Rounds"])
     - `version`: Application version being tested
     - `application_url`: URL of the application for this round
     - `environment`: Environment name (e.g., dev, staging, production)
+    - `round_status`: Round status (e.g., pending, in-progress, completed)
     - `is_mail_sent`: Whether notification email has been sent (default: False)
     
     **Validations:**
@@ -76,6 +77,7 @@ def create_round(
         version=request.version,
         application_url=request.application_url,
         environment=request.environment,
+        round_status=request.round_status,
         is_mail_sent=request.is_mail_sent,
     )
     
@@ -159,6 +161,7 @@ def get_rounds_by_project(
     - `version`: Application version
     - `application_url`: Application URL
     - `environment`: Environment name
+    - `round_status`: Round status
     - `is_mail_sent`: Mail sent status
     - `email_template_id`: Email template ID
     
@@ -192,43 +195,10 @@ def update_round(
         version=request.version,
         application_url=request.application_url,
         environment=request.environment,
+        round_status=request.round_status,
         is_mail_sent=request.is_mail_sent,
         email_template_id=request.email_template_id,
     )
     
     logger.info(f"Round updated successfully: {round_id}")
     return round_obj
-
-
-@router.delete(
-    "/{round_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete a round",
-    description="""
-    Delete a round by ID.
-    
-    **Warning:** This will permanently delete the round.
-    Consider the impact on related vulnerabilities before deletion.
-    """
-)
-def delete_round(
-    round_id: int = Path(..., description="Round ID to delete", gt=0),
-    db: Session = Depends(get_db)
-):
-    """
-    Delete a round.
-    
-    Args:
-        round_id: Round ID to delete
-        db: Database session
-        
-    Returns:
-        No content (204)
-    """
-    logger.info(f"Deleting round: {round_id}")
-    
-    service = RoundService(db)
-    service.delete_round(round_id)
-    
-    logger.info(f"Round deleted successfully: {round_id}")
-    return None

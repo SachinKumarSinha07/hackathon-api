@@ -18,6 +18,7 @@ class RoundMaster(Base):
     project_id = Column(Integer, ForeignKey("projects.project_id"), nullable=False)
     application_url = Column(String, nullable=True)
     environment = Column(String, nullable=True)
+    round_status = Column(String, nullable=True)
     is_mail_sent = Column(Boolean, nullable=False, default=False)
     email_template_id = Column(Integer, ForeignKey("email_templates.template_id"), nullable=False)
 

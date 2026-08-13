@@ -31,6 +31,7 @@ class RoundService:
         version: Optional[str] = None,
         application_url: Optional[str] = None,
         environment: Optional[str] = None,
+        round_status: Optional[str] = None,
         is_mail_sent: bool = False,
     ) -> RoundMaster:
         """
@@ -45,6 +46,7 @@ class RoundService:
             version: Application version (optional)
             application_url: Application URL (optional)
             environment: Environment name (optional)
+            round_status: Round status (optional, e.g., pending, in-progress, completed)
             is_mail_sent: Whether mail has been sent (default: False)
 
         Returns:
@@ -78,6 +80,7 @@ class RoundService:
             "project_id": project_id,
             "application_url": application_url,
             "environment": environment,
+            "round_status": round_status,
             "is_mail_sent": is_mail_sent,
             "email_template_id": email_template_id,
             "created_by": created_by,
@@ -155,6 +158,7 @@ class RoundService:
         version: Optional[str] = None,
         application_url: Optional[str] = None,
         environment: Optional[str] = None,
+        round_status: Optional[str] = None,
         is_mail_sent: Optional[bool] = None,
         email_template_id: Optional[int] = None,
     ) -> RoundMaster:
@@ -206,6 +210,8 @@ class RoundService:
             update_data["application_url"] = application_url
         if environment is not None:
             update_data["environment"] = environment
+        if round_status is not None:
+            update_data["round_status"] = round_status
         if is_mail_sent is not None:
             update_data["is_mail_sent"] = is_mail_sent
         if email_template_id is not None:

@@ -13,6 +13,7 @@ class RoundCreateRequest(BaseModel):
     project_id: int = Field(..., description="Project ID", gt=0)
     application_url: Optional[str] = Field(None, description="Application URL", max_length=500)
     environment: Optional[str] = Field(None, description="Environment (e.g., dev, staging, production)", max_length=50)
+    round_status: Optional[str] = Field(None, description="Round status (e.g., pending, in-progress, completed)", max_length=50)
     is_mail_sent: bool = Field(False, description="Whether notification email has been sent")
     email_template_id: int = Field(..., description="Email template ID (required)", gt=0)
     created_by: int = Field(..., description="User ID creating the round", gt=0)
@@ -26,6 +27,7 @@ class RoundCreateRequest(BaseModel):
                 "project_id": 1,
                 "application_url": "https://app.example.com",
                 "environment": "production",
+                "round_status": "in-progress",
                 "is_mail_sent": False,
                 "email_template_id": 1,
                 "created_by": 1
@@ -40,6 +42,7 @@ class RoundUpdateRequest(BaseModel):
     version: Optional[str] = Field(None, description="Application version", max_length=50)
     application_url: Optional[str] = Field(None, description="Application URL", max_length=500)
     environment: Optional[str] = Field(None, description="Environment", max_length=50)
+    round_status: Optional[str] = Field(None, description="Round status", max_length=50)
     is_mail_sent: Optional[bool] = Field(None, description="Whether notification email has been sent")
     email_template_id: Optional[int] = Field(None, description="Email template ID (can update if needed)", gt=0)
     updated_by: int = Field(..., description="User ID performing the update", gt=0)
@@ -51,6 +54,7 @@ class RoundUpdateRequest(BaseModel):
                 "version": "1.0.1",
                 "application_url": "https://app-updated.example.com",
                 "environment": "staging",
+                "round_status": "completed",
                 "is_mail_sent": True,
                 "updated_by": 1
             }
@@ -66,6 +70,7 @@ class RoundResponse(BaseModel):
     project_id: int
     application_url: Optional[str] = None
     environment: Optional[str] = None
+    round_status: Optional[str] = None
     is_mail_sent: bool
     email_template_id: int
     created_by: int
@@ -84,6 +89,7 @@ class RoundResponse(BaseModel):
                 "project_id": 1,
                 "application_url": "https://app.example.com",
                 "environment": "production",
+                "round_status": "in-progress",
                 "is_mail_sent": False,
                 "email_template_id": 1,
                 "created_by": 1,
