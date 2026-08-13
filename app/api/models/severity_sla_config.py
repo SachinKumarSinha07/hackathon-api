@@ -11,7 +11,7 @@ class SeveritySLAConfig(Base):
 
     __tablename__ = "severity_sla_config"
 
-    sla_config_id = Column(Integer, primary_key=True, autoincrement=True)
+    severity_id = Column(Integer, primary_key=True, autoincrement=True)
     severity = Column(String(20), nullable=False)
     exposure = Column(String(20), nullable=False)
     sla_days = Column(Integer, nullable=False)
@@ -28,4 +28,4 @@ class SeveritySLAConfig(Base):
     updater = relationship("UserMaster", foreign_keys=[updated_by], backref="updated_sla_configs")
 
     def __repr__(self):
-        return f"<SeveritySLAConfig(sla_config_id={self.sla_config_id}, severity='{self.severity}', exposure='{self.exposure}')>"
+        return f"<SeveritySLAConfig(severity_id={self.severity_id}, severity='{self.severity}', exposure='{self.exposure}')>"

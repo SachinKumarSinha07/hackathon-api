@@ -1,7 +1,8 @@
 """VAPT Import Controller - API endpoints for VAPT Excel import"""
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, UploadFile, File, Form, Query, status
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from app.core.database import get_db
 from app.api.schemas.vapt_import_schema import VAPTImportResponse
@@ -104,3 +105,55 @@ async def import_vapt_excel(
             message=f"An unexpected error occurred during import: {str(e)}",
             message_key="vapt.import.unexpected_error"
         )
+
+
+@router.get(
+    "/vulnerabilities",
+    response_model=VAPTImportResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Retrieve vulnerabilities",
+    description="""
+    Retrieve vulnerabilities filtered by project, round, severity and status.
+
+    All filters are optional and combined with AND logic. Any filter left empty
+    is ignored. The response shape matches the VAPT import response.
+
+    **Query Parameters:**
+    - `project_id`: Optional - Filter by project ID
+    - `round_id`: Optional - Filter by round ID
+    - `severity`: Optional - Filter by severity (case-insensitive)
+    - `status`: Optional - Filter by status (case-insensitive)
+    """
+)
+def get_vulnerabilities(
+    project_id: Optional[int] = Query(None, description="Filter by project ID", gt=0),
+    round_id: Optional[int] = Query(None, description="Filter by round ID", gt=0),
+    severity: Optional[str] = Query(None, description="Filter by severity"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve vulnerabilities based on the provided filters.
+
+    Args:
+        project_id: Optional project ID filter
+        round_id: Optional round ID filter
+        severity: Optional severity filter
+        status: Optional status filter
+        db: Database session
+
+    Returns:
+        VAPTImportResponse: Matching vulnerabilities
+    """
+    logger.info(
+        f"Retrieving vulnerabilities: project_id={project_id}, round_id={round_id}, "
+        f"severity={severity}, status={status}"
+    )
+
+    service = VAPTImportService(db)
+    return service.get_vulnerabilities(
+        project_id=project_id,
+        round_id=round_id,
+        severity=severity,
+        status=status,
+    )

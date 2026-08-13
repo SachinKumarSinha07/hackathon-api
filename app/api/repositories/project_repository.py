@@ -123,6 +123,27 @@ class ProjectRepository:
         
         return result
 
+    def get_user_by_project_and_role(self, project_id: int, role_id: int) -> Optional[str]:
+        """
+        Get a username for a user with a specific role in a project.
+        Returns the first matching user's username.
+
+        Args:
+            project_id: Project ID
+            role_id: Role ID (e.g., 6 for security analyst)
+
+        Returns:
+            Optional[str]: Username or None if not found
+        """
+        result = self.db.query(UserMaster.username).join(
+            ProjectMember, UserMaster.user_id == ProjectMember.user_id
+        ).filter(
+            ProjectMember.project_id == project_id,
+            ProjectMember.role_id == role_id
+        ).first()
+
+        return result[0] if result else None
+
     def update_project(self, project_id: int, update_data: Dict[str, Any]) -> Optional[Project]:
         """Update a project"""
         project = self.get_project_by_id(project_id)
@@ -175,11 +196,10 @@ class ProjectRepository:
         for project in projects:
             # Query vulnerability stats for this project
             vuln_query = self.db.query(
-                func.count(case((VulnerabilityMaster.severity.ilike('critical'), 1))).label('critical'),
-                func.count(case((VulnerabilityMaster.severity.ilike('high'), 1))).label('high'),
-                func.count(case((VulnerabilityMaster.severity.ilike('medium'), 1))).label('medium'),
-                func.count(case((VulnerabilityMaster.severity.ilike('low'), 1))).label('low'),
-                func.count(case((VulnerabilityMaster.severity.ilike('info%'), 1))).label('info'),
+                func.count(case((VulnerabilityMaster.severity.ilike('Critical - Level 5'), 1), else_=None)).label('critical'),
+                func.count(case((VulnerabilityMaster.severity.ilike('High - Level 4'), 1), else_=None)).label('high'),
+                func.count(case((VulnerabilityMaster.severity.ilike('Medium - Level 3'), 1), else_=None)).label('medium'),
+                func.count(case((VulnerabilityMaster.severity.ilike('Low - Level 2'), 1), else_=None)).label('low'),
                 func.count(VulnerabilityMaster.vulnerability_id).label('total')
             ).filter(
                 VulnerabilityMaster.project_id == project.project_id,
@@ -205,7 +225,6 @@ class ProjectRepository:
                     "high": stats.high or 0,
                     "medium": stats.medium or 0,
                     "low": stats.low or 0,
-                    "info": stats.info or 0,
                     "total": stats.total or 0
                 }
             })
