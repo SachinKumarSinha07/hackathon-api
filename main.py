@@ -27,7 +27,7 @@ from app.api.middleware import (
     api_exception_handler,
     general_exception_handler,
 )
-from app.api.controllers import health_router, project_router, user_router
+from app.api.controllers import health_router, project_router, user_router, vapt_import_router, round_router, risk_acceptance_router
 
 # Setup logging first
 setup_logging(settings.log_level)
@@ -105,6 +105,9 @@ app.add_exception_handler(Exception, general_exception_handler)
 app.include_router(health_router, prefix=settings.api_prefix)
 app.include_router(project_router, prefix=settings.api_prefix)
 app.include_router(user_router, prefix=settings.api_prefix)
+app.include_router(vapt_import_router, prefix=settings.api_prefix)
+app.include_router(round_router, prefix=settings.api_prefix)
+app.include_router(risk_acceptance_router, prefix=settings.api_prefix)
 
 
 @app.get("/", tags=["Root"])
