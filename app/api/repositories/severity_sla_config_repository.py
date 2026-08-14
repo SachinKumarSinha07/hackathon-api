@@ -24,9 +24,49 @@ class SeveritySLAConfigRepository:
         results = self.db.query(SeveritySLAConfig.severity).distinct().all()
         return [row[0] for row in results]
 
+    def get_severities_ordered(self) -> List[str]:
+        """
+        Get distinct severity values ordered by their first appearance
+        (severity_id ascending), preserving a meaningful chart order
+        (e.g., Critical, High, Medium, Low, Info).
+
+        Returns:
+            List[str]: Ordered list of unique severity values
+        """
+        from sqlalchemy import func
+
+        results = (
+            self.db.query(SeveritySLAConfig.severity)
+            .group_by(SeveritySLAConfig.severity)
+            .order_by(func.min(SeveritySLAConfig.severity_id))
+            .all()
+        )
+        return [row[0] for row in results]
+
     def get_all_sla_configs(self) -> List[SeveritySLAConfig]:
         """Get all SLA configurations"""
         return self.db.query(SeveritySLAConfig).all()
+
+    def get_sla_days_map(self) -> dict:
+        """
+        Build a mapping of severity value -> sla_days.
+
+        When a severity has multiple exposure rows, the smallest sla_days is
+        kept (the strictest deadline) so due-date derivation is conservative.
+
+        Returns:
+            dict: Mapping of severity string -> sla_days (int)
+        """
+        sla_map: dict = {}
+        for config in self.db.query(
+            SeveritySLAConfig.severity, SeveritySLAConfig.sla_days
+        ).all():
+            severity, sla_days = config
+            if severity is None or sla_days is None:
+                continue
+            if severity not in sla_map or sla_days < sla_map[severity]:
+                sla_map[severity] = sla_days
+        return sla_map
 
     def get_sla_config_by_severity_exposure(
         self, severity: str, exposure: str

@@ -24,6 +24,7 @@ class ProjectCreateRequest(BaseModel):
     project_name: str = Field(..., min_length=1, max_length=150, description="Project name")
     project_description: Optional[str] = Field(None, description="Project description")
     project_type: str = Field(..., min_length=1, max_length=20, description="Project type (e.g., web, mobile, api)")
+    department: Optional[str] = Field(None, max_length=100, description="Department owning the project")
     environment: Optional[str] = Field(None, min_length=1, max_length=20, description="Environment (e.g., dev, staging, production)")
     project_url: Optional[str] = Field(None, max_length=500, description="Project URL")
     members: List[ProjectMemberInput] = Field(..., min_length=1, description="Project members with roles")
@@ -51,6 +52,7 @@ class ProjectCreateRequest(BaseModel):
                 "project_name": "E-Commerce Platform",
                 "project_description": "Main e-commerce application",
                 "project_type": "web",
+                "department": "Engineering",
                 "environment": "production",
                 "project_url": "https://example.com",
                 "members": [
@@ -66,6 +68,7 @@ class ProjectUpdateRequest(BaseModel):
     project_name: Optional[str] = Field(None, min_length=1, max_length=150, description="Project name")
     project_description: Optional[str] = Field(None, description="Project description")
     project_type: Optional[str] = Field(None, min_length=1, max_length=20, description="Project type")
+    department: Optional[str] = Field(None, max_length=100, description="Department owning the project")
     environment: Optional[str] = Field(None, min_length=1, max_length=20, description="Environment")
     project_url: Optional[str] = Field(None, max_length=500, description="Project URL")
     members: Optional[List[ProjectMemberInput]] = Field(None, min_length=1, description="Project members with roles")
@@ -116,6 +119,7 @@ class ProjectUpdateRequest(BaseModel):
                 "project_name": "Updated Project Name",
                 "project_description": "Updated description",
                 "project_type": "web",
+                "department": "Engineering",
                 "environment": "production",
                 "project_url": "https://updated-example.com",
                 "members": [
@@ -144,6 +148,7 @@ class ProjectResponse(BaseModel):
     project_name: str
     project_description: Optional[str]
     project_type: str
+    department: Optional[str]
     environment: str
     project_url: Optional[str]
     members: List[ProjectMemberResponse] = []
@@ -156,6 +161,7 @@ class ProjectResponse(BaseModel):
                 "project_name": "E-Commerce Platform",
                 "project_description": "Main e-commerce application",
                 "project_type": "web",
+                "department": "Engineering",
                 "environment": "production",
                 "project_url": "https://example.com",
                 "members": [
@@ -199,6 +205,7 @@ class ProjectWithStatsResponse(BaseModel):
     project_name: str
     project_description: Optional[str]
     project_type: str
+    department: Optional[str]
     environment: Optional[str]
     project_url: Optional[str]
     vulnerability_stats: VulnerabilityStats
@@ -211,6 +218,7 @@ class ProjectWithStatsResponse(BaseModel):
                 "project_name": "E-Commerce Platform",
                 "project_description": "Main e-commerce application",
                 "project_type": "web",
+                "department": "Engineering",
                 "environment": "production",
                 "project_url": "https://example.com",
                 "vulnerability_stats": {

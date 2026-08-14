@@ -82,6 +82,7 @@ class ProjectService:
             "project_name": request.project_name,
             "project_description": request.project_description,
             "project_type": request.project_type,
+            "department": request.department,
             "environment": request.environment,
             "project_url": request.project_url,
             "created_by": created_by_user_id
@@ -198,6 +199,8 @@ class ProjectService:
                 update_data["project_description"] = request.project_description
             if request.project_type is not None:
                 update_data["project_type"] = request.project_type
+            if request.department is not None:
+                update_data["department"] = request.department
             if request.environment is not None:
                 update_data["environment"] = request.environment
             if request.project_url is not None:
@@ -258,6 +261,7 @@ class ProjectService:
             project_name=project_data["project_name"],
             project_description=project_data["project_description"],
             project_type=project_data["project_type"],
+            department=project_data["department"],
             environment=project_data["environment"],
             project_url=project_data["project_url"],
             members=members
@@ -292,6 +296,7 @@ class ProjectService:
                         project_name=project_data["project_name"],
                         project_description=project_data["project_description"],
                         project_type=project_data["project_type"],
+                        department=project_data["department"],
                         environment=project_data["environment"],
                         project_url=project_data["project_url"],
                         vulnerability_stats=VulnerabilityStats(**project_data["vulnerability_stats"])
