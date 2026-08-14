@@ -1,0 +1,16 @@
+Hi {pic_name},
+
+Good day.
+
+This is a second follow-up regarding the open vulnerabilities identified in the {application_name} during the VAPT conducted in {vapt_month_year}. These findings remain unresolved more than one week past the defined SLA.
+
+Please find the attached Excel file with the list of open vulnerability findings mapped to your respective application/system.
+
+Open Vulnerability Findings Summary:
+
+{severity_table}
+
+As per the defined SLA timelines, the below findings were expected to be remediated; however, they are currently pending closure. In case there is a need to extend the remediation timelines, request you to please provide client's risk acceptance approval for the same.
+
+Regards,
+YMSLI Cybersecurity Team

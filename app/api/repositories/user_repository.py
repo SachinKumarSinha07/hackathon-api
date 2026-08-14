@@ -41,6 +41,10 @@ class UserRepository:
         """Get a user by username"""
         return self.db.query(UserMaster).filter(UserMaster.username == username).first()
 
+    def get_user_by_role(self, role_id: int) -> Optional[UserMaster]:
+        """Get the first user assigned a specific global role (e.g. 7 for CTO)."""
+        return self.db.query(UserMaster).filter(UserMaster.role_id == role_id).first()
+
     def get_user_with_role(self, user_id: int) -> Optional[Dict[str, Any]]:
         """Get a user with role information"""
         result = self.db.query(

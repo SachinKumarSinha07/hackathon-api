@@ -1,0 +1,7 @@
+Practice: {practice_name}
+Affected Application Name: {application_name}
+
+Severity:                Critical      High    Medium       Low
+Defined SLA (in days):   {critical_sla:>8}  {high_sla:>8}  {medium_sla:>8}  {low_sla:>8}
+Open Issues:              {critical_open:>8}  {high_open:>8}  {medium_open:>8}  {low_open:>8}
+TAT Breach (days):        {critical_breach:>8}  {high_breach:>8}  {medium_breach:>8}  {low_breach:>8}

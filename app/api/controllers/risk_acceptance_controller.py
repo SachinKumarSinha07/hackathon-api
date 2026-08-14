@@ -64,6 +64,7 @@ def add_risk_acceptance(
         vulnerability_id=request.vulnerability_id,
         justification=request.justification,
         requested_by=request.requested_by,
+        requested_days=request.requested_days,
     )
 
     logger.info(f"Risk acceptance added successfully for vulnerability: {request.vulnerability_id}")

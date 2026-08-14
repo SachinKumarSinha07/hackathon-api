@@ -1,0 +1,12 @@
+Hi {pic_name},
+
+Good day.
+
+Round 1 of VAPT testing for {application_name} is complete. Please find the findings summary below.
+
+{severity_table}
+
+A detailed report will follow shortly.
+
+Regards,
+YMSLI Cybersecurity Team

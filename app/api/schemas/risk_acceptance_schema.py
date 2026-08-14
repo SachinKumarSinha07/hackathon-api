@@ -10,13 +10,17 @@ class RiskAcceptanceRequest(BaseModel):
     vulnerability_id: int = Field(..., description="Vulnerability ID", gt=0)
     justification: str = Field(..., description="Justification for risk acceptance", min_length=1)
     requested_by: int = Field(..., description="User ID requesting the risk acceptance", gt=0)
+    requested_days: Optional[int] = Field(
+        None, description="Number of days of risk acceptance extension being requested", gt=0
+    )
 
     class Config:
         json_schema_extra = {
             "example": {
                 "vulnerability_id": 1,
                 "justification": "Risk accepted as the affected component is behind a firewall and not publicly accessible.",
-                "requested_by": 1
+                "requested_by": 1,
+                "requested_days": 30
             }
         }
 

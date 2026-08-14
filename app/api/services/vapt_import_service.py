@@ -17,6 +17,8 @@ from app.api.repositories.project_repository import ProjectRepository
 from app.api.repositories.round_repository import RoundRepository
 from app.api.repositories.severity_sla_config_repository import SeveritySLAConfigRepository
 from app.api.models.vulnerability_master import VulnerabilityMaster
+from app.api.models.project import Project
+from app.api.services.notification_service import NotificationService
 from app.api.middleware.error_handler import APIException
 from app.api.schemas.vapt_import_schema import (
     VAPTImportResponse,
@@ -30,6 +32,16 @@ from vapt_parser import parse_file
 
 logger = get_logger(__name__)
 
+# Role id of the Person In Charge (PIC), resolved per-project via project_members.
+PIC_ROLE_ID = 6
+
+# Recipient priority for the completion notification: PIC first, then fall back
+# to the Project Manager and finally the Practice Head.
+NOTIFY_RECIPIENT_ROLE_PRIORITY = [PIC_ROLE_ID, 3, 2]
+
+# Completion template registered in email_gateway.py / templates/ folder.
+VAPT_ENDED_TEMPLATE = "vapt_ended"
+
 
 class VAPTImportService:
     """Service for importing VAPT Excel files and processing vulnerabilities"""
@@ -40,6 +52,7 @@ class VAPTImportService:
         self.project_repo = ProjectRepository(db)
         self.round_repo = RoundRepository(db)
         self.severity_sla_repo = SeveritySLAConfigRepository(db)
+        self.notifier = NotificationService()
         self.s3_client = get_s3_client()
         
         # Cache valid severities from database
@@ -203,6 +216,43 @@ class VAPTImportService:
             round_id=v.round_id,
             created_by=v.created_by,
             created_at=v.created_at,
+        )
+
+    def _send_vapt_ended_email(
+        self, project: Project, created_vulns: List[VulnerabilityMaster]
+    ) -> None:
+        """Notify the project's PIC that the VAPT engagement has completed."""
+        pic = self.project_repo.get_user_details_by_project_and_roles(
+            project.project_id, NOTIFY_RECIPIENT_ROLE_PRIORITY
+        )
+        if not pic or not pic.email:
+            logger.warning(
+                f"No recipient (PIC/PM/Practice Head) with an email found for "
+                f"project {project.project_id}; VAPT ended email will not be sent."
+            )
+            return
+
+        # Build a short severity breakdown for the summary line.
+        severity_counts: Dict[str, int] = {}
+        for v in created_vulns:
+            key = (v.severity or "Unspecified").split(" - ")[0].strip()
+            severity_counts[key] = severity_counts.get(key, 0) + 1
+        breakdown = ", ".join(f"{sev}: {count}" for sev, count in severity_counts.items())
+        summary = f"{len(created_vulns)} vulnerabilities imported"
+        if breakdown:
+            summary += f" ({breakdown})"
+
+        context = {
+            "pic_name": pic.username,
+            "application_name": project.project_name,
+            "end_date": datetime.utcnow().strftime("%d %b %Y"),
+            "summary": summary,
+        }
+
+        self.notifier.send_template(
+            template_name=VAPT_ENDED_TEMPLATE,
+            to_addresses=[pic.email],
+            context=context,
         )
 
     def get_vulnerabilities(
@@ -446,6 +496,11 @@ class VAPTImportService:
             self.db.commit()
 
             logger.info(f"Successfully imported {len(created_vulns)} vulnerabilities")
+
+            # Notify the project's PIC that the VAPT engagement has completed.
+            # Best-effort: failures are logged by the notifier and never affect
+            # the successful import result.
+            self._send_vapt_ended_email(project, created_vulns)
 
             # Build response using Pydantic models (same mapping as retrieve)
             vulnerabilities = [
