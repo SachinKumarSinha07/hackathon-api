@@ -20,7 +20,7 @@ class RoundMaster(Base):
     environment = Column(String, nullable=True)
     round_status = Column(String, nullable=True)
     is_mail_sent = Column(Boolean, nullable=False, default=False)
-    email_template_id = Column(Integer, ForeignKey("email_templates.template_id"), nullable=False)
+    email_template_id = Column(Integer, ForeignKey("email_templates.template_id"), nullable=True)
 
     created_by = Column(Integer, ForeignKey("user_master.user_id"), nullable=False)
     created_at = Column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)

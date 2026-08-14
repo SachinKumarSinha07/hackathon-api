@@ -5,6 +5,7 @@ All configuration settings for the FastAPI application.
 Values are loaded from environment variables / .env file via pydantic-settings.
 """
 
+from pydantic import Field, AliasChoices
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 from typing import List
@@ -32,6 +33,31 @@ class Settings(BaseSettings):
     # CORS Settings
     allowed_origins: str = "http://localhost:3000"
 
+    # AWS Bedrock Settings (values come from AWS_REGION / BEDROCK_MODEL_ID env vars)
+    aws_region: str = ""
+    bedrock_model_id: str = ""
+    bedrock_max_tokens: int = 2048
+    # Ceiling for the executive summary (~2200 chars). Enforced again in the prompt.
+    bedrock_summary_max_tokens: int = 1000
+    # Applied only to models that support it (e.g. Sonnet 4.5). Sonnet 5 rejects it
+    # and it is skipped automatically based on the model id.
+    bedrock_temperature: float | None = 0.2
+    bedrock_timeout_seconds: int = 120
+    # SECURITY: disables TLS certificate verification on the Bedrock client.
+    # Only for local dev behind a corporate TLS-intercepting proxy (e.g. Zscaler).
+    # NEVER set this to true outside a local machine - it allows MITM on all
+    # Bedrock traffic. Defaults to verified (safe) unless explicitly overridden.
+    bedrock_verify_ssl: bool = True
+
+    # AWS auth. Preferred: a Bedrock API key (bearer token). Otherwise boto3 uses
+    # its default provider chain (AWS_PROFILE, IAM role, real env vars).
+    aws_profile: str = ""
+    # Bedrock API key (bearer token). Accepts AWS_BEARER_TOKEN_BEDROCK or BEDROCK_API_KEY.
+    bedrock_api_key: str = Field(
+        "",
+        validation_alias=AliasChoices("AWS_BEARER_TOKEN_BEDROCK", "BEDROCK_API_KEY"),
+    )
+
     # PostgreSQL Settings
     postgres_host: str = "localhost"
     postgres_port: int = 5432
@@ -51,7 +77,10 @@ class Settings(BaseSettings):
     s3_presigned_url_expiry: int = 604800
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
+        env_file=BASE_DIR / ".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
     )
 
     def get_allowed_origins_list(self) -> List[str]:

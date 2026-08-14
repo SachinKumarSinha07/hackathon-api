@@ -15,7 +15,7 @@ class RoundCreateRequest(BaseModel):
     environment: Optional[str] = Field(None, description="Environment (e.g., dev, staging, production)", max_length=50)
     round_status: Optional[str] = Field(None, description="Round status (e.g., pending, in-progress, completed)", max_length=50)
     is_mail_sent: bool = Field(False, description="Whether notification email has been sent")
-    email_template_id: int = Field(..., description="Email template ID (required)", gt=0)
+    email_template_id: Optional[int] = Field(None, description="Email template ID", gt=0)
     created_by: int = Field(..., description="User ID creating the round", gt=0)
 
     class Config:
@@ -72,7 +72,7 @@ class RoundResponse(BaseModel):
     environment: Optional[str] = None
     round_status: Optional[str] = None
     is_mail_sent: bool
-    email_template_id: int
+    email_template_id: Optional[int] = None
     created_by: int
     created_at: datetime
     updated_by: Optional[int] = None

@@ -41,7 +41,7 @@ class RoundService:
         round_name: str,
         project_id: int,
         created_by: int,
-        email_template_id: int,
+        email_template_id: Optional[int] = None,
         version: Optional[str] = None,
         application_url: Optional[str] = None,
         environment: Optional[str] = None,
