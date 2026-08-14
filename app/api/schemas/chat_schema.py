@@ -39,7 +39,6 @@ class ChatRequest(BaseModel):
                     "round": "All Rounds",
                     "severity": "Critical",
                     "devStatus": "All Statuses",
-                    "verification": "All Verification",
                 },
             }
         }

@@ -60,7 +60,7 @@ def get_allowed_project_ids(
     - `global`: the assistant receives every vulnerability the caller is permitted to see,
       ignoring the table filters.
     - `filtered`: the assistant receives only the records matching the active table filters
-      (Project, Round, Severity, Dev Status, Verification).
+      (Project, Round, Severity, Dev Status).
 
     Pagination is never applied - the complete matching set is sent to the model.
     Conversation history is kept per `sessionId`.

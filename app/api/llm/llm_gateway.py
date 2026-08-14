@@ -369,11 +369,13 @@ def converse_with_tools(
 
             try:
                 result = tool_handler(tool_name, tool_input)
+                # Bedrock requires toolResult.content[].json to be a JSON object, not a bare array.
+                result_obj = result if isinstance(result, dict) else {"result": result}
                 tool_results.append(
                     {
                         "toolResult": {
                             "toolUseId": tool_id,
-                            "content": [{"json": result}],
+                            "content": [{"json": result_obj}],
                             "status": "success",
                         }
                     }

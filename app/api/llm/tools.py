@@ -22,8 +22,7 @@ CHAT_TOOL_CONFIG = {
                                 "type": "string",
                                 "enum": [
                                     "severity",
-                                    "dev_status",
-                                    "verification",
+                                    "status",
                                     "project",
                                     "pic",
                                 ],
@@ -60,8 +59,8 @@ CHAT_TOOL_CONFIG = {
                                 "type": "array",
                                 "items": {"type": "object"},
                                 "description": (
-                                    "For bar/pie: [{\"name\": \"label\", \"value\": number}]. "
-                                    "For table: [{\"col1\": \"v\", \"col2\": \"v\", ...}]."
+                                    'For bar/pie: [{"name": "label", "value": number}]. '
+                                    'For table: [{"col1": "v", "col2": "v", ...}].'
                                 ),
                             },
                         },
@@ -88,6 +87,5 @@ def aggregate_records(
             key = getattr(r, group_by, None) or "Unknown"
         counts[key] = counts.get(key, 0) + 1
     return [
-        {"name": k, "value": v}
-        for k, v in sorted(counts.items(), key=lambda x: -x[1])
+        {"name": k, "value": v} for k, v in sorted(counts.items(), key=lambda x: -x[1])
     ]

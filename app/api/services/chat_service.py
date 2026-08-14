@@ -14,7 +14,11 @@ from app.api.repositories.vulnerability_repository import (
 from app.api.schemas.chat_schema import ChatRequest
 from app.api.schemas.vulnerability_schema import VulnerabilityFilterParams
 from app.api.llm import converse_with_tools
-from app.api.llm.tools import CHAT_TOOL_CONFIG, VISUALIZATION_TOOL_NAME, aggregate_records
+from app.api.llm.tools import (
+    CHAT_TOOL_CONFIG,
+    VISUALIZATION_TOOL_NAME,
+    aggregate_records,
+)
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -146,7 +150,7 @@ TOOL_INSTRUCTIONS = (
     "2. Listing multiple specific records with several fields each (e.g. 'list critical "
     "vulnerabilities', 'show overdue items') -> call render_visualization directly with "
     "type 'table', where each item in data is one object with the relevant fields as keys "
-    "(e.g. name, pic, dev_status, verification, target_date). Do not aggregate first.\n"
+    "(e.g. name, pic, status, target_date). Do not aggregate first.\n"
     "3. After any render_visualization call, follow with a brief text commentary - do not "
     "repeat the tabular data as text.\n"
     "4. For a single number or a single record, answer directly from the data without tools."
@@ -156,8 +160,7 @@ FILTER_LABELS = {
     "project": "Project",
     "round": "Round",
     "severity": "Severity",
-    "dev_status": "Dev Status",
-    "verification": "Verification",
+    "dev_status": "Status",
 }
 
 
@@ -248,6 +251,7 @@ class ChatService:
             if tool_name == VISUALIZATION_TOOL_NAME:
                 return {"status": "rendered", "message": "Chart displayed to user"}
             return {"error": f"Unknown tool: {tool_name}"}
+
         return handler
 
     @staticmethod
@@ -263,8 +267,7 @@ class ChatService:
                     "target_date": record.target_date.isoformat()
                     if record.target_date
                     else None,
-                    "dev_status": record.dev_status,
-                    "verification": record.verification,
+                    "status": record.status,
                 }
                 for record in records
             ],
