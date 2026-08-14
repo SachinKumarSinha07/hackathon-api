@@ -145,6 +145,46 @@ class ProjectRepository:
 
         return result[0] if result else None
 
+    def get_user_details_by_project_and_role(self, project_id: int, role_id: int) -> Optional[UserMaster]:
+        """
+        Get the full user record for a user assigned a specific role in a project.
+        Returns the first matching user.
+
+        Args:
+            project_id: Project ID
+            role_id: Role ID (e.g., 2 for Practice Head)
+
+        Returns:
+            Optional[UserMaster]: User instance or None if not found
+        """
+        return self.db.query(UserMaster).join(
+            ProjectMember, UserMaster.user_id == ProjectMember.user_id
+        ).filter(
+            ProjectMember.project_id == project_id,
+            ProjectMember.role_id == role_id
+        ).first()
+
+    def get_user_details_by_project_and_roles(
+        self, project_id: int, role_ids: List[int]
+    ) -> Optional[UserMaster]:
+        """
+        Resolve the first available project member matching a prioritised list
+        of roles. Roles are tried in the given order, so pass the preferred
+        recipient first (e.g. [PIC, Project Manager, Practice Head]).
+
+        Args:
+            project_id: Project ID
+            role_ids: Role IDs in priority order
+
+        Returns:
+            Optional[UserMaster]: First matching user, or None if none match
+        """
+        for role_id in role_ids:
+            user = self.get_user_details_by_project_and_role(project_id, role_id)
+            if user:
+                return user
+        return None
+
     def update_project(self, project_id: int, update_data: Dict[str, Any]) -> Optional[Project]:
         """Update a project"""
         project = self.get_project_by_id(project_id)

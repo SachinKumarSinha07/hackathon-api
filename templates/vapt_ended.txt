@@ -1,0 +1,10 @@
+Hi {pic_name},
+
+Good day.
+
+The VAPT engagement for {application_name} has been completed as of {end_date}.
+
+Final summary: {summary}
+
+Regards,
+YMSLI Cybersecurity Team

@@ -7,10 +7,23 @@ from datetime import datetime
 from app.api.repositories.round_repository import RoundRepository
 from app.api.repositories.project_repository import ProjectRepository
 from app.api.models.round_master import RoundMaster
+from app.api.models.project import Project
+from app.api.services.notification_service import NotificationService
 from app.api.middleware.error_handler import APIException
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
+
+# Role id of the Person In Charge (PIC), resolved per-project via project_members.
+PIC_ROLE_ID = 6
+
+# Recipient priority for round/import notifications: PIC first, then fall back to
+# the Project Manager and finally the Practice Head so the mail always reaches an
+# owner even when no explicit PIC is assigned to the project.
+NOTIFY_RECIPIENT_ROLE_PRIORITY = [PIC_ROLE_ID, 3, 2]
+
+# Kickoff template registered in email_gateway.py / templates/ folder.
+VAPT_KICKOFF_TEMPLATE = "vapt_kickoff"
 
 
 class RoundService:
@@ -20,6 +33,7 @@ class RoundService:
         self.db = db
         self.round_repo = RoundRepository(db)
         self.project_repo = ProjectRepository(db)
+        self.notifier = NotificationService()
 
     def create_round(
         self,
@@ -92,7 +106,6 @@ class RoundService:
             round_obj = self.round_repo.create_round(round_data)
             self.db.commit()
             logger.info(f"Round created successfully: {round_obj.round_id}")
-            return round_obj
         except Exception as e:
             self.db.rollback()
             logger.error(f"Failed to create round: {str(e)}", exc_info=True)
@@ -101,6 +114,38 @@ class RoundService:
                 message=f"Failed to create round: {str(e)}",
                 message_key="round.creation_failed"
             )
+
+        # Send the VAPT kickoff email to the project's PIC. Best-effort: any
+        # failure is logged by the notifier and never blocks round creation.
+        self._send_kickoff_email(project, round_obj)
+
+        return round_obj
+
+    def _send_kickoff_email(self, project: Project, round_obj: RoundMaster) -> None:
+        """Notify the project's PIC that the VAPT engagement has kicked off."""
+        pic = self.project_repo.get_user_details_by_project_and_roles(
+            project.project_id, NOTIFY_RECIPIENT_ROLE_PRIORITY
+        )
+        if not pic or not pic.email:
+            logger.warning(
+                f"No recipient (PIC/PM/Practice Head) with an email found for "
+                f"project {project.project_id}; kickoff email will not be sent."
+            )
+            return
+
+        start_date = (round_obj.created_at or datetime.utcnow()).strftime("%d %b %Y")
+        context = {
+            "pic_name": pic.username,
+            "application_name": project.project_name,
+            "start_date": start_date,
+        }
+
+        self.notifier.send_template(
+            template_name=VAPT_KICKOFF_TEMPLATE,
+            to_addresses=[pic.email],
+            context=context,
+        )
+
 
     def get_round_by_id(self, round_id: int) -> RoundMaster:
         """

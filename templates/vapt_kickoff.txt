@@ -1,0 +1,10 @@
+Hi {pic_name},
+
+Good day.
+
+This is to inform you that the VAPT engagement for {application_name} has officially kicked off on {start_date}.
+
+We'll keep you updated as testing progresses.
+
+Regards,
+YMSLI Cybersecurity Team
